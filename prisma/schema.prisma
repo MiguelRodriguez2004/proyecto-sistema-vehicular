@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  email     String   @unique
+  password  String
+  rol       Rol
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  ordenes   OrdenServicio[]
+}
+
+model Cliente {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  documento String?
+  telefono  String?
+  email     String?
+  createdAt DateTime @default(now())
+
+  vehiculos Vehiculo[]
+}
+
+model Vehiculo {
+  id        Int      @id @default(autoincrement())
+  placa     String   @unique
+  chasis    String?  @unique
+  tipo      TipoVehiculo
+  marca     String?
+  modelo    String?
+  clienteId Int
+
+  cliente   Cliente  @relation(fields: [clienteId], references: [id])
+  ordenes   OrdenServicio[]
+}
+
+model OrdenServicio {
+  id            Int      @id @default(autoincrement())
+  vehiculoId    Int
+  tecnicoId     Int
+  estado        EstadoOrden
+  descripcion   String?
+  fechaIngreso  DateTime @default(now())
+
+  vehiculo      Vehiculo @relation(fields: [vehiculoId], references: [id])
+  tecnico       Usuario  @relation(fields: [tecnicoId], references: [id])
+
+  novedades     Novedad[]
+  servicios     ServicioRealizado[]
+}
+
+model Novedad {
+  id          Int      @id @default(autoincrement())
+  ordenId     Int
+  tipo        TipoNovedad?
+  descripcion String
+  createdAt   DateTime @default(now())
+
+  orden       OrdenServicio @relation(fields: [ordenId], references: [id])
+  fotos       FotoNovedad[]
+}
+
+model FotoNovedad {
+  id         Int      @id @default(autoincrement())
+  novedadId  Int
+  url        String
+
+  novedad    Novedad @relation(fields: [novedadId], references: [id])
+}
+
+model ServicioRealizado {
+  id          Int     @id @default(autoincrement())
+  ordenId     Int
+  descripcion String
+  costo       Float?
+
+  orden       OrdenServicio @relation(fields: [ordenId], references: [id])
+}
+
+enum Rol {
+  ADMIN
+  TECNICO
+}
+
+enum EstadoOrden {
+  RECIBIDO
+  EN_REVISION
+  EN_PROCESO
+  FINALIZADO
+  ENTREGADO
+}
+
+enum TipoVehiculo {
+  AUTO
+  MOTO
+}
+
+enum TipoNovedad {
+  ESTETICO
+  MECANICO
+  ELECTRICO
+  GENERAL
+}
