@@ -46,3 +46,20 @@ export const crearVehiculoService = async (data) => {
 
   return vehiculo;
 };
+
+/**
+ * Obtiene la lista de vehículos con filtros opcionales.
+ * @param {Object} filtros - Filtros de búsqueda (clienteId)
+ */
+export const listarVehiculosService = async (filtros = {}) => {
+  const { clienteId } = filtros;
+
+  return await prisma.vehiculo.findMany({
+    where: {
+      ...(clienteId && { clienteId: Number(clienteId) })
+    },
+    include: {
+      cliente: true
+    }
+  });
+};

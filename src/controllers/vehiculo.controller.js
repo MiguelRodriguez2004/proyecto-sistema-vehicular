@@ -1,4 +1,4 @@
-import { crearVehiculoService } from "../services/vehiculo.service.js";
+import { crearVehiculoService, listarVehiculosService } from "../services/vehiculo.service.js";
 
 export const crearVehiculo = async (req, res) => {
   try {
@@ -17,5 +17,25 @@ export const crearVehiculo = async (req, res) => {
     }
 
     res.status(500).json({ error: "Error creando vehículo" });
+  }
+};
+
+export const listarVehiculos = async (req, res) => {
+  try {
+    const { clienteId } = req.query;
+    const vehiculos = await listarVehiculosService({ clienteId });
+
+    res.status(200).json({
+      success: true,
+      message: "Vehículos obtenidos correctamente",
+      data: vehiculos
+    });
+  } catch (error) {
+    console.error("Error al listar vehículos:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error listando vehículos",
+      error: error.message
+    });
   }
 };
