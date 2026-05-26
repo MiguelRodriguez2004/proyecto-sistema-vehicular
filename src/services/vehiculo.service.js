@@ -1,7 +1,7 @@
 import prisma from "../config/prisma.js";
 
 export const crearVehiculoService = async (data) => {
-  const { placa, clienteId, chasis } = data;
+  const { placa, clienteId } = data;
 
   // 🔍 Normalizar placa (buena práctica)
   const placaNormalizada = placa.toUpperCase().trim();
@@ -22,17 +22,6 @@ export const crearVehiculoService = async (data) => {
 
   if (vehiculoExistente) {
     throw new Error("La placa ya está registrada");
-  }
-
-  // 🔍 Validar chasis único (si viene)
-  if (chasis) {
-    const chasisExistente = await prisma.vehiculo.findUnique({
-      where: { chasis }
-    });
-
-    if (chasisExistente) {
-      throw new Error("El chasis ya está registrado");
-    }
   }
 
   // ✅ Crear vehículo

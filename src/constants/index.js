@@ -36,6 +36,15 @@ export const TIPO_NOVEDAD = {
 };
 
 /**
+ * Constantes de Tipos de Servicio
+ */
+export const TIPO_SERVICIO = {
+  PREVENTIVO: "PREVENTIVO",
+  CORRECTIVO: "CORRECTIVO",
+  DIAGNOSTICO: "DIAGNOSTICO"
+};
+
+/**
  * Diccionario centralizado de mensajes de error de validación
  */
 export const ERROR_MESSAGES = {
@@ -71,5 +80,8 @@ export const ERROR_MESSAGES = {
   ORDEN_NO_EXISTE: "La orden no existe",
   ORDEN_VEHICULO_ID_OBLIGATORIO: "vehiculoId es obligatorio",
   ORDEN_TECNICO_ID_OBLIGATORIO: "tecnicoId es obligatorio",
-  ORDEN_ESTADO_INVALIDO: "Estado de orden inválido"
+  ORDEN_ESTADO_INVALIDO: "Estado de orden inválido",
+  ORDEN_KILOMETRAJE_NUMERO: "El kilometraje debe ser un número entero no negativo",
+  ORDEN_TIPO_SERVICIO_INVALIDO: "El tipo de servicio no es válido"
 };
+

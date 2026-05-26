@@ -2,12 +2,13 @@ import { crearClienteService, obtenerClientesService } from "../services/cliente
 
 export const crearCliente = async (req, res) => {
   try {
-    const { nombre, documento, telefono } = req.body;
+    const { nombre, documento, telefono, email } = req.body;
 
     const cliente = await crearClienteService({
       nombre,
       documento,
-      telefono
+      telefono,
+      email: email && email.trim() !== "" ? email.trim() : null
     });
 
     res.status(201).json(cliente);

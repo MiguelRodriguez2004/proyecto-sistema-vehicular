@@ -33,7 +33,6 @@ model Cliente {
 model Vehiculo {
   id        Int      @id @default(autoincrement())
   placa     String   @unique
-  chasis    String?  @unique
   tipo      TipoVehiculo
   marca     String?
   modelo    String?
@@ -44,18 +43,19 @@ model Vehiculo {
 }
 
 model OrdenServicio {
-  id            Int      @id @default(autoincrement())
+  id            Int          @id @default(autoincrement())
   vehiculoId    Int
   tecnicoId     Int
-  estado        EstadoOrden
-  descripcion   String?
-  fechaIngreso  DateTime @default(now())
+  estado        EstadoOrden  @default(RECIBIDO)
+  diagnostico   String?
+  fechaIngreso  DateTime     @default(now())
+  kilometraje   Int?
+  tipoServicio  TipoServicio?
 
   vehiculo      Vehiculo @relation(fields: [vehiculoId], references: [id])
   tecnico       Usuario  @relation(fields: [tecnicoId], references: [id])
 
   novedades     Novedad[]
-  servicios     ServicioRealizado[]
 }
 
 model Novedad {
@@ -75,15 +75,6 @@ model FotoNovedad {
   url        String
 
   novedad    Novedad @relation(fields: [novedadId], references: [id])
-}
-
-model ServicioRealizado {
-  id          Int     @id @default(autoincrement())
-  ordenId     Int
-  descripcion String
-  costo       Float?
-
-  orden       OrdenServicio @relation(fields: [ordenId], references: [id])
 }
 
 enum Rol {
@@ -109,4 +100,10 @@ enum TipoNovedad {
   MECANICO
   ELECTRICO
   GENERAL
+}
+
+enum TipoServicio {
+  PREVENTIVO
+  CORRECTIVO
+  DIAGNOSTICO
 }

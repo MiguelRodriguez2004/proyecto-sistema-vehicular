@@ -1,7 +1,7 @@
-import { ERROR_MESSAGES, ESTADO_ORDEN } from "../constants/index.js";
+import { ERROR_MESSAGES, ESTADO_ORDEN, TIPO_SERVICIO } from "../constants/index.js";
 
 export const validarCrearOrden = (req, res, next) => {
-  const { vehiculoId, tecnicoId } = req.body;
+  const { vehiculoId, tecnicoId, kilometraje, tipoServicio } = req.body;
 
   if (!vehiculoId) {
     return res.status(400).json({ error: ERROR_MESSAGES.ORDEN_VEHICULO_ID_OBLIGATORIO });
@@ -11,8 +11,25 @@ export const validarCrearOrden = (req, res, next) => {
     return res.status(400).json({ error: ERROR_MESSAGES.ORDEN_TECNICO_ID_OBLIGATORIO });
   }
 
+  // Validar kilometraje si se envía
+  if (kilometraje !== undefined && kilometraje !== null && kilometraje !== "") {
+    const kmNum = Number(kilometraje);
+    if (isNaN(kmNum) || kmNum < 0) {
+      return res.status(400).json({ error: ERROR_MESSAGES.ORDEN_KILOMETRAJE_NUMERO });
+    }
+  }
+
+  // Validar tipo de servicio si se envía
+  if (tipoServicio) {
+    const tiposValidos = Object.values(TIPO_SERVICIO);
+    if (!tiposValidos.includes(tipoServicio.toUpperCase())) {
+      return res.status(400).json({ error: ERROR_MESSAGES.ORDEN_TIPO_SERVICIO_INVALIDO });
+    }
+  }
+
   next();
 };
+
 
 export const validarObtenerOrden = (req, res, next) => {
   const { id } = req.params;

@@ -6,7 +6,7 @@ import { ERROR_MESSAGES, ESTADO_ORDEN, ROL } from "../constants/index.js";
  * @param {Object} data - Datos de la orden
  */
 export const crearOrdenService = async (data) => {
-  const { vehiculoId, tecnicoId, descripcion } = data;
+  const { vehiculoId, tecnicoId, diagnostico, kilometraje, tipoServicio } = data;
 
   // 🔍 Validar vehículo
   const vehiculo = await prisma.vehiculo.findUnique({
@@ -31,7 +31,9 @@ export const crearOrdenService = async (data) => {
     data: {
       vehiculoId: Number(vehiculoId),
       tecnicoId: Number(tecnicoId),
-      descripcion,
+      diagnostico,
+      kilometraje: (kilometraje !== undefined && kilometraje !== null && kilometraje !== "") ? Number(kilometraje) : null,
+      tipoServicio: tipoServicio ? tipoServicio.toUpperCase() : null,
       estado: ESTADO_ORDEN.RECIBIDO
     }
   });
