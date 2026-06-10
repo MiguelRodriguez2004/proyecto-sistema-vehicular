@@ -10,8 +10,12 @@ import {
   validarObtenerOrden,
   validarCambiarEstadoOrden
 } from "../middlewares/orden.middleware.js";
+import { checkJwt, injectUser } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
+
+// Proteger todas las rutas de órdenes de servicio
+router.use(checkJwt, injectUser);
 
 // 🆕 Crear una nueva orden de servicio
 router.post("/ordenes", validarCrearOrden, crearOrden);
