@@ -15,34 +15,51 @@ export const checkJwt = auth({
 });
 
 /**
- * Middleware para inyectar los datos del usuario de la base de datos local
- * buscando por el correo electrónico contenido en el token de Auth0.
- * Si el usuario no existe en la base de datos, se deniega el acceso (403).
+ * Middleware para inyectar los datos del usuario de la base de datos local.
+ * 
+ * Estrategia de búsqueda (en orden de prioridad):
+ * 1. Busca por `auth0Id` (el campo `sub` del JWT), que es un enlace directo e inequívoco.
+ * 2. Si no encuentra por `auth0Id`, busca por email (Custom Claim del token).
+ *    - Si lo encuentra por email, actualiza automáticamente su registro para asociarle
+ *      el `auth0Id`, de modo que las próximas búsquedas sean directas.
+ * 3. Si no existe en la base de datos por ninguna de las dos vías, deniega el acceso (403).
  */
 export const injectUser = async (req, res, next) => {
   try {
-    // express-oauth2-jwt-bearer guarda la información del token verificado en req.auth
     if (!req.auth) {
       return res.status(401).json({ error: "No autorizado. Token no válido o ausente." });
     }
 
-    // Se extrae el email desde el Custom Claim inyectado en el Access Token.
-    // Usamos el namespace por defecto configurado en las Acciones de Auth0.
+    const auth0Id = req.auth.payload.sub; // Identificador único de Auth0 (ej: "auth0|abc123")
     const namespace = "https://sistema-vehicular.com";
     const email = req.auth.payload[`${namespace}/email`] || req.auth.payload.email;
 
-    if (!email) {
-      return res.status(400).json({
-        error: "El token de acceso no contiene el correo electrónico. Asegúrate de configurar la acción personalizada en Auth0 para incluir el correo como custom claim.",
+    let usuario = null;
+
+    // Paso 1: Buscar por auth0Id (enlace directo)
+    if (auth0Id) {
+      usuario = await prisma.usuario.findUnique({
+        where: { auth0Id },
       });
     }
 
-    // Buscamos el usuario en nuestra base de datos local (fuente de verdad para roles y estado)
-    const usuario = await prisma.usuario.findUnique({
-      where: { email: email.toLowerCase().trim() },
-    });
+    // Paso 2: Si no se encontró por auth0Id, buscar por email y auto-vincular
+    if (!usuario && email) {
+      usuario = await prisma.usuario.findUnique({
+        where: { email: email.toLowerCase().trim() },
+      });
 
-    // Si el administrador no ha creado previamente el usuario en la base de datos
+      // Auto-vincular el auth0Id para que las próximas búsquedas sean directas
+      if (usuario && auth0Id && !usuario.auth0Id) {
+        usuario = await prisma.usuario.update({
+          where: { id: usuario.id },
+          data: { auth0Id },
+        });
+        console.log(`🔗 auth0Id vinculado automáticamente al usuario ${usuario.email}`);
+      }
+    }
+
+    // Si no se encontró por ninguna vía
     if (!usuario) {
       return res.status(403).json({
         error: "Acceso denegado. Este usuario no está registrado en el sistema. Solicita a un administrador que te registre primero.",
