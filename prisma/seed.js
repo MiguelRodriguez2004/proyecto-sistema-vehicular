@@ -6,13 +6,7 @@ dotenv.config();
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminEmail = process.env.INITIAL_ADMIN_EMAIL;
-
-  if (!adminEmail) {
-    console.warn('⚠️  INITIAL_ADMIN_EMAIL no está configurado en el archivo .env del backend.');
-    console.warn('Por favor, configúralo para crear el administrador inicial.');
-    return;
-  }
+  const adminEmail = process.env.INITIAL_ADMIN_EMAIL || 'miguelzat913@gmail.com';
 
   const emailNormalizado = adminEmail.toLowerCase().trim();
 

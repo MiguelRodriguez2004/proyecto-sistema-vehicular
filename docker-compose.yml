@@ -29,7 +29,7 @@ services:
       - db
     # Espera a que la base de datos esté lista, aplica las migraciones de Prisma y arranca el backend
     command: >
-      sh -c "node scripts/wait-for-db.js && npx prisma migrate deploy && npm run dev"
+      sh -c "node scripts/wait-for-db.js && npx prisma migrate deploy && npx prisma db seed && npm run dev"
 
 volumes:
   postgres_data:
