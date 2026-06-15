@@ -4,8 +4,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "swagger": "node scripts/swagger.js",
     "dev": "node src/app.js",
-    "start": "node src/app.js",
+    "start": "node scripts/swagger.js && node src/app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -19,10 +20,12 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^9.0.0"
+    "nodemailer": "^9.0.0",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "swagger-autogen": "^2.23.7"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
