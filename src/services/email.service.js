@@ -11,11 +11,11 @@ const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST || process.env.SMTP_HOST,
   port: process.env.MAIL_PORT || process.env.SMTP_PORT,
   secure: (process.env.MAIL_PORT || process.env.SMTP_PORT) == 465,
+  family: 4, // Fuerza estrictamente a Nodemailer a usar IPv4
   auth: {
     user: process.env.MAIL_USER || process.env.SMTP_USER,
     pass: process.env.MAIL_PASSWORD || process.env.SMTP_PASS,
   },
-  // Le pasamos esto directo al socket para obligar IPv4
   tls: { rejectUnauthorized: false }
 });
 
