@@ -1,5 +1,9 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+import dns from "dns";
+
+// Forzar la resolución DNS a IPv4 (Soluciona el error ENETUNREACH con IPv6 en Render)
+dns.setDefaultResultOrder('ipv4first');
 
 dotenv.config();
 
@@ -11,6 +15,8 @@ const transporter = nodemailer.createTransport({
     user: process.env.MAIL_USER || process.env.SMTP_USER,
     pass: process.env.MAIL_PASSWORD || process.env.SMTP_PASS,
   },
+  // Le pasamos esto directo al socket para obligar IPv4
+  tls: { rejectUnauthorized: false }
 });
 
 /**
