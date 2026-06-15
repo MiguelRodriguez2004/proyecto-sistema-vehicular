@@ -1,37 +1,57 @@
-import { Resend } from "resend";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 /**
- * Envía un correo electrónico usando Resend.
+ * Envía un correo electrónico usando la API HTTP de Brevo.
  * @param {string} to - Destinatario
  * @param {string} subject - Asunto
  * @param {string} html - Contenido HTML
  */
 export const enviarCorreo = async (to, subject, html) => {
   try {
-    // Si MAIL_FROM no está definido, usamos el correo de onboarding de Resend
-    const from = process.env.MAIL_FROM || "Sistema Vehicular <onboarding@resend.dev>";
+    const url = "https://api.brevo.com/v3/smtp/email";
     
-    const { data, error } = await resend.emails.send({
-      from,
-      to,
-      subject,
-      html,
+    // Obtenemos las claves del entorno
+    const apiKey = process.env.BREVO_API_KEY;
+    // Si MAIL_USER no está en Render, usará el predeterminado de tu cuenta.
+    const senderEmail = process.env.MAIL_USER || "trackgarageadso@gmail.com";
+
+    const payload = {
+      sender: {
+        name: "Sistema Vehicular",
+        email: senderEmail
+      },
+      to: [
+        {
+          email: to
+        }
+      ],
+      subject: subject,
+      htmlContent: html
+    };
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "accept": "application/json",
+        "api-key": apiKey,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify(payload)
     });
 
-    if (error) {
-      console.error("Error devuelto por Resend:", error);
-      throw new Error("No se pudo enviar el correo a través de Resend");
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("❌ Error devuelto por Brevo:", JSON.stringify(errorData, null, 2));
+      throw new Error(`Error HTTP ${response.status}: No se pudo enviar el correo`);
     }
 
-    console.log(`📧 Correo enviado exitosamente a ${to}. ID: ${data?.id}`);
+    const data = await response.json();
+    console.log(`📧 Correo enviado exitosamente a ${to} mediante Brevo. ID: ${data.messageId}`);
     return data;
   } catch (err) {
-    console.error("Error en enviarCorreo:", err);
+    console.error("❌ Error en enviarCorreo (Brevo):", err);
     throw err;
   }
 };
