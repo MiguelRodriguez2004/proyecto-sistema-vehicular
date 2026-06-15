@@ -11,10 +11,12 @@ model Usuario {
   id        Int      @id @default(autoincrement())
   nombre    String
   email     String   @unique
-  password  String
+  password  String?
   rol       Rol
   activo    Boolean  @default(true)
   createdAt DateTime @default(now())
+  resetToken       String?
+  resetTokenExpiry DateTime?
 
   ordenes   OrdenServicio[]
 }
