@@ -1,9 +1,12 @@
 import prisma from "../config/prisma.js";
-import {
-  crearUsuarioEnAuth0,
-  actualizarUsuarioEnAuth0,
-  cambiarEstadoEnAuth0,
-} from "../services/auth0Management.service.js";
+import bcrypt from "bcrypt";
+import crypto from "crypto";
+import { enviarCorreo } from "../services/email.service.js";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 /**
  * Lista todos los usuarios registrados en la base de datos local.
@@ -19,7 +22,6 @@ export const listarUsuarios = async (req, res) => {
         rol: true,
         activo: true,
         createdAt: true,
-        auth0Id: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -50,7 +52,6 @@ export const obtenerUsuarioPorId = async (req, res) => {
         rol: true,
         activo: true,
         createdAt: true,
-        auth0Id: true,
       },
     });
 
@@ -67,9 +68,9 @@ export const obtenerUsuarioPorId = async (req, res) => {
 
 /**
  * Crea un nuevo usuario:
- * 1. Lo crea en Auth0 (Management API) obteniendo su auth0Id.
- * 2. Lo registra en la base de datos local vinculando el auth0Id.
- * 3. Auth0 le envía un correo para que configure su contraseña.
+ * 1. Lo registra en la base de datos local con una contraseña temporal encriptada.
+ * 2. Le genera un token de restablecimiento de contraseña.
+ * 3. Le envía un correo para que configure su contraseña.
  */
 export const crearUsuario = async (req, res) => {
   try {
@@ -88,17 +89,24 @@ export const crearUsuario = async (req, res) => {
       });
     }
 
-    // Paso 1: Crear en Auth0
-    const auth0User = await crearUsuarioEnAuth0(emailNormalizado, nombre);
+    // Contraseña temporal segura que no se le da al usuario directamente
+    const tempPassword = crypto.randomBytes(16).toString('hex');
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+    // Generar token para que el usuario configure su propia clave inicial
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenExpiry = new Date(Date.now() + 86400000); // 24 horas
 
     // Paso 2: Crear en la base de datos local
     const usuario = await prisma.usuario.create({
       data: {
         nombre: nombre.trim(),
         email: emailNormalizado,
+        password: hashedPassword,
         rol,
         activo: true,
-        auth0Id: auth0User.auth0Id,
+        resetToken,
+        resetTokenExpiry,
       },
       select: {
         id: true,
@@ -107,9 +115,33 @@ export const crearUsuario = async (req, res) => {
         rol: true,
         activo: true,
         createdAt: true,
-        auth0Id: true,
       },
     });
+
+    // Paso 3: Enviar correo de bienvenida con enlace para configurar contraseña
+    const resetUrl = `${FRONTEND_URL}/reset-password?token=${resetToken}`;
+    const html = `
+      <h2>¡Bienvenido a Sistema Vehicular!</h2>
+      <p>Hola ${usuario.nombre},</p>
+      <p>Un administrador ha creado una cuenta para ti con el rol de <strong>${usuario.rol}</strong>.</p>
+      <p>Para poder ingresar al sistema, necesitas configurar tu contraseña haciendo clic en el siguiente enlace:</p>
+      <a href="${resetUrl}" target="_blank">Configurar mi contraseña</a>
+      <p>Este enlace expirará en 24 horas.</p>
+      <p>Si tienes problemas, contacta al administrador.</p>
+    `;
+
+    // Intentamos enviar el correo, pero si falla no revertimos la creación del usuario
+    try {
+      await enviarCorreo(usuario.email, "Bienvenido - Configura tu contraseña", html);
+    } catch (emailError) {
+      console.error("No se pudo enviar el correo de bienvenida:", emailError);
+      // Podrías devolver el enlace en la respuesta como fallback si el correo falla en dev
+      return res.status(201).json({
+        success: true,
+        message: "Usuario creado, pero hubo un error enviando el correo. Enlace generado: " + resetUrl,
+        data: usuario,
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -118,12 +150,6 @@ export const crearUsuario = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creando usuario:", error);
-
-    // Si el error viene de Auth0
-    if (error.message.includes("Auth0") || error.message.includes("registrado")) {
-      return res.status(400).json({ success: false, message: error.message });
-    }
-
     res.status(500).json({ success: false, message: "Error creando usuario." });
   }
 };
@@ -131,7 +157,6 @@ export const crearUsuario = async (req, res) => {
 /**
  * Actualiza los datos de un usuario existente:
  * - Actualiza nombre, email y rol en la base de datos local.
- * - Si el email o nombre cambian, también los actualiza en Auth0.
  */
 export const actualizarUsuario = async (req, res) => {
   try {
@@ -161,15 +186,6 @@ export const actualizarUsuario = async (req, res) => {
       }
     }
 
-    // Actualizar en Auth0 si tiene auth0Id vinculado
-    const datosAuth0 = {};
-    if (nombre && nombre.trim() !== usuario.nombre) datosAuth0.nombre = nombre.trim();
-    if (emailNormalizado !== usuario.email) datosAuth0.email = emailNormalizado;
-
-    if (Object.keys(datosAuth0).length > 0) {
-      await actualizarUsuarioEnAuth0(usuario.auth0Id, datosAuth0);
-    }
-
     // Actualizar en la base de datos local
     const actualizado = await prisma.usuario.update({
       where: { id: parseInt(id) },
@@ -185,7 +201,6 @@ export const actualizarUsuario = async (req, res) => {
         rol: true,
         activo: true,
         createdAt: true,
-        auth0Id: true,
       },
     });
 
@@ -196,11 +211,6 @@ export const actualizarUsuario = async (req, res) => {
     });
   } catch (error) {
     console.error("Error actualizando usuario:", error);
-
-    if (error.message.includes("Auth0")) {
-      return res.status(400).json({ success: false, message: error.message });
-    }
-
     res.status(500).json({ success: false, message: "Error actualizando usuario." });
   }
 };
@@ -208,7 +218,6 @@ export const actualizarUsuario = async (req, res) => {
 /**
  * Activa o desactiva un usuario:
  * - Cambia el campo `activo` en la base de datos local.
- * - Bloquea o desbloquea al usuario en Auth0.
  */
 export const cambiarEstadoUsuario = async (req, res) => {
   try {
@@ -238,9 +247,6 @@ export const cambiarEstadoUsuario = async (req, res) => {
       });
     }
 
-    // Cambiar estado en Auth0
-    await cambiarEstadoEnAuth0(usuario.auth0Id, !activo);
-
     // Cambiar estado en la base de datos local
     const actualizado = await prisma.usuario.update({
       where: { id: parseInt(id) },
@@ -252,7 +258,6 @@ export const cambiarEstadoUsuario = async (req, res) => {
         rol: true,
         activo: true,
         createdAt: true,
-        auth0Id: true,
       },
     });
 
@@ -263,11 +268,6 @@ export const cambiarEstadoUsuario = async (req, res) => {
     });
   } catch (error) {
     console.error("Error cambiando estado de usuario:", error);
-
-    if (error.message.includes("Auth0")) {
-      return res.status(400).json({ success: false, message: error.message });
-    }
-
     res.status(500).json({ success: false, message: "Error cambiando estado del usuario." });
   }
 };

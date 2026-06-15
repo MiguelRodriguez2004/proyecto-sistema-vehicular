@@ -6,18 +6,17 @@ import {
   actualizarUsuario,
   cambiarEstadoUsuario,
 } from "../controllers/adminUsuario.controller.js";
-import { checkJwt, injectUser, requireRol } from "../middlewares/auth.middleware.js";
+import { injectUser, requireRol } from "../middlewares/auth.middleware.js";
 import { ROL } from "../constants/index.js";
 
 const router = express.Router();
 
 /**
  * Todas las rutas de este archivo están protegidas por:
- * 1. checkJwt - Valida el token JWT de Auth0.
- * 2. injectUser - Inyecta los datos del usuario desde la DB local.
- * 3. requireRol(["ADMIN"]) - Solo permite acceso a administradores.
+ * 1. injectUser - Valida el token JWT local e inyecta los datos del usuario desde la DB local.
+ * 2. requireRol(["ADMIN"]) - Solo permite acceso a administradores.
  */
-router.use(checkJwt, injectUser, requireRol(["ADMIN"]));
+router.use(injectUser, requireRol(["ADMIN"]));
 
 // ─────────────────────────────────────────────
 // Middleware de validación inline

@@ -15,7 +15,8 @@ model Usuario {
   rol       Rol
   activo    Boolean  @default(true)
   createdAt DateTime @default(now())
-  auth0Id   String?  @unique
+  resetToken       String?
+  resetTokenExpiry DateTime?
 
   ordenes   OrdenServicio[]
 }
